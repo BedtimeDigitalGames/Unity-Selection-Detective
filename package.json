@@ -1,9 +1,12 @@
 {
   "name": "com.bedtime.selection-detective",
   "displayName": "Selection Detective",
-  "version": "1.0.0",
-  "author": "Bedtime Digital Games",
+  "version": "1.0.1",
+  "author": {
+    "name": "Bedtime Digital Games",
+    "url": "https://git.bedtime.io/unity-packages/com.bedtime.selection-detective"
+  },
   "dependencies": {
-    "com.bedtime.tree-view-utilities": "1.0.0"
+    "com.bedtime.tree-view-utilities": "1.0.1"
   }
 }
