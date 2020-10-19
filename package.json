@@ -1,0 +1,9 @@
+{
+  "name": "com.bedtime.selection-detective",
+  "displayName": "Selection Detective",
+  "version": "1.0.0",
+  "author": "Bedtime Digital Games",
+  "dependencies": {
+    "com.bedtime.tree-view-utilities": "1.0.0"
+  }
+}
