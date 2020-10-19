@@ -3,7 +3,9 @@
     "references": [
         "com.bedtime.tree-view-utilities"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
