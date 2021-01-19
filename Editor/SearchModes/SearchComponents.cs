@@ -21,7 +21,7 @@ namespace BedtimeCore.SelectionDetective
 		
 		public SearchComponents()
 		{
-			Icon = EditorGUIUtility.IconContent("cs Script Icon").image;;
+			Icon = EditorGUIUtility.IconContent("cs Script Icon").image;
 		}
 	}
 }
