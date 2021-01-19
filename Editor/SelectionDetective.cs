@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using BedtimeCore.Editor;
 using BedtimeCore.Reflection;
 using UnityEditor;
@@ -16,7 +15,7 @@ namespace BedtimeCore.SelectionDetective
 
 		private GameObject[] selectionOwners = new GameObject[0];
 		private IEnumerable<FilterObject> toBeFiltered = new FilterObject[0];
-		private IEnumerable<SelectionObject> filteredSet = new SelectionObject[0];
+		private SelectionObject[] filteredSet = new SelectionObject[0];
 		
 		[SerializeField]
 		private int searchModeIndex;
@@ -93,7 +92,7 @@ namespace BedtimeCore.SelectionDetective
 
 		private void OnSelectionChanged()
 		{
-			if (isControllingSelection || lockSelection)
+			if ((isControllingSelection && mouseOverWindow is SelectionDetective) || lockSelection)
 			{
 				isControllingSelection = false;
 				return;
@@ -130,7 +129,9 @@ namespace BedtimeCore.SelectionDetective
 
 					if (totalSize >= Screen.width)
 					{
+						EditorGUI.BeginDisabledGroup(true);
 						EditorGUILayout.TextArea($"{selectionOwners.Length} Selection(s)", EditorStyles.centeredGreyMiniLabel);
+						EditorGUI.EndDisabledGroup();
 					}
 					else
 					{
@@ -138,7 +139,10 @@ namespace BedtimeCore.SelectionDetective
 						foreach (var o in selectionOwners)
 						{
 							var maxWidth = ICON_WIDTH + GUI.skin.label.CalcSize(new GUIContent(o.name)).x;
-							GUILayout.Button(new GUIContent(o.name, type), EditorStyles.miniLabel, GUILayout.MaxWidth(maxWidth), GUILayout.ExpandWidth(false), GUILayout.Height(ICON_WIDTH));
+							if (GUILayout.Button(new GUIContent(o.name, type), EditorStyles.miniLabel, GUILayout.MaxWidth(maxWidth), GUILayout.ExpandWidth(false), GUILayout.Height(ICON_WIDTH)))
+							{
+								Selection.activeObject = o;
+							}
 						}
 						GUILayout.FlexibleSpace();
 					}
@@ -192,22 +196,32 @@ namespace BedtimeCore.SelectionDetective
 			{
 				return;
 			}
-			filteredSet = SelectionObject.Filter(SearchMode, sortMode,  toBeFiltered);
+			filteredSet = SelectionObject.Filter(SearchMode, sortMode,  toBeFiltered).ToArray();
 		}
 
 		private void DrawList()
 		{
+			var buttonHeight = SelectionObject.BUTTON_HEIGHT;
+			scrollHeightMax = (int) ((position.height - PRE_SCROLL_HEIGHT) / buttonHeight);
 			GUI.SetNextControlName("DetectiveMainArea");
-			scroll = GUILayout.BeginScrollView(scroll, GUIStyle.none, GUI.skin.GetStyle("VerticalScrollbar"));
-			EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
-			foreach (SelectionObject o in filteredSet)
+			int firstIndex = (int)(scroll.y / buttonHeight);
+			scroll = GUILayout.BeginScrollView(scroll, GUIStyle.none, GUI.skin.GetStyle("VerticalScrollbar"), GUILayout.ExpandHeight(true));
+			firstIndex = Mathf.Clamp(firstIndex,0,Mathf.Max(0,filteredSet.Length - scrollHeightMax));
+
+			EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+			GUILayout.Space(firstIndex * buttonHeight);
+
+			for (var i = firstIndex; i < Mathf.Min(filteredSet.Length, firstIndex+scrollHeightMax); i++)
 			{
+				SelectionObject o = filteredSet[i];
 				o.Draw(searchModes[searchModeIndex], SearchField);
 			}
-
+			
+			GUILayout.Space(Mathf.Max(0,(filteredSet.Length-firstIndex-scrollHeightMax) * buttonHeight));
 			EditorGUILayout.EndVertical();
 			EditorGUILayout.EndScrollView();
-			
+
+
 			if (mouseOverWindow is SelectionDetective)
 			{
 				if (Event.current.type == EventType.MouseDown)
@@ -398,7 +412,7 @@ namespace BedtimeCore.SelectionDetective
 				buttonStyleNormal.alignment = TextAnchor.MiddleLeft;
 				buttonStyleNormal.hover.background = buttonStyleNormal.normal.background;
 				buttonStyleNormal.hover.textColor = hoverColor;
-				buttonStyleNormal.fixedHeight = 16;
+				buttonStyleNormal.fixedHeight = BUTTON_HEIGHT;
 				
 				buttonStyleDown = new GUIStyle(buttonStyleNormal);
 				buttonStyleDown.normal = buttonStyleNormal.onActive;
@@ -410,6 +424,7 @@ namespace BedtimeCore.SelectionDetective
 
 			private static GUIStyle buttonStyleNormal;
 			private static GUIStyle buttonStyleDown;
+			public const float BUTTON_HEIGHT = 16f;
 
 			private enum SelectionType
 			{
@@ -430,6 +445,8 @@ namespace BedtimeCore.SelectionDetective
 		private static GUIStyle lockStyle;
 
 		private static GUIStyle takeSelectionStyle;
+		private int scrollHeightMax;
+		private const float PRE_SCROLL_HEIGHT = 46;
 
 		private GUIStyle TakeSelectionStyle
 		{
