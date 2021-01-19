@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using BedtimeCore.Editor;
 using BedtimeCore.Reflection;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 
-namespace BedtimeCore.Editor
+namespace BedtimeCore.SelectionDetective
 {
 	internal sealed class SelectionDetective : SearchableEditorWindow
 	{
@@ -18,8 +19,8 @@ namespace BedtimeCore.Editor
 		private IEnumerable<SelectionObject> filteredSet = new SelectionObject[0];
 		
 		[SerializeField]
-		private SearchMode searchMode = SearchMode.Components;
-
+		private int searchModeIndex;
+		
 		[SerializeField]
 		private SortMode sortMode = SortMode.Ascending;
 
@@ -32,15 +33,14 @@ namespace BedtimeCore.Editor
 		[SerializeField]
 		private Vector2 scroll;
 		
+		private string[] searchModeNames;
 		private static bool isControllingSelection;
-		private static Texture tagIcon;
-		private static Texture scriptIcon;
-		private static Texture layerIcon;
 		private static Texture lockedIcon;
 		private static Texture unlockedIcon;
 		private static Texture takeSelectionIcon;
 		private static Texture collapseIcon;
 		
+		private new ISearchMode SearchMode => searchModes[searchModeIndex];
 		private string SearchField
 		{
 			get => this.GetValue<string>("m_SearchFilter");
@@ -53,18 +53,22 @@ namespace BedtimeCore.Editor
 
 			collapseIcon = EditorGUIUtility.IconContent("d_UnityEditor.SceneHierarchyWindow").image;
 			takeSelectionIcon = EditorGUIUtility.IconContent("ArrowNavigationRight").image;
-			tagIcon = EditorGUIUtility.IconContent("d_FilterByLabel").image;
-			scriptIcon = EditorGUIUtility.IconContent("cs Script Icon").image;
-			layerIcon = EditorGUIUtility.IconContent("d_SceneViewFx").image;
 			lockedIcon = EditorGUIUtility.IconContent("IN LockButton on act").image;
 			unlockedIcon = EditorGUIUtility.IconContent("IN LockButton act").image;
-			
+			searchModes = GetSearchModes();
+			searchModeNames = searchModes.Select(s => s.Name).ToArray();
 			minSize = new Vector2(200, 140);
 			
 			Selection.selectionChanged += OnSelectionChanged;
 			EditorApplication.hierarchyChanged -= OnHierarchyChanged;
 			EditorApplication.hierarchyChanged += OnHierarchyChanged;
 			UpdateOwner();
+		}
+
+		private List<ISearchMode> GetSearchModes()
+		{
+			var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(asm => asm.GetTypes()).Where(t => typeof(ISearchMode).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract).ToList();
+			return types.Select(type => Activator.CreateInstance(type) as ISearchMode).ToList();
 		}
 
 		private void OnHierarchyChanged()
@@ -155,7 +159,8 @@ namespace BedtimeCore.Editor
 			{
 				var labelWidth = EditorGUIUtility.labelWidth;
 				EditorGUIUtility.labelWidth = 55;
-				searchMode = (SearchMode)EditorGUILayout.EnumPopup("Mode", searchMode);
+				// searchModeNames = (SearchMode)EditorGUILayout.EnumPopup("Mode", searchMode);
+				searchModeIndex = EditorGUILayout.Popup(searchModeIndex, searchModeNames);
 				sortMode = (SortMode) EditorGUILayout.EnumPopup("Sorting", sortMode);
 				using (new EditorGUILayout.HorizontalScope())
 				{
@@ -187,9 +192,9 @@ namespace BedtimeCore.Editor
 			{
 				return;
 			}
-			filteredSet = SelectionObject.Filter(searchMode, sortMode,  toBeFiltered);
+			filteredSet = SelectionObject.Filter(SearchMode, sortMode,  toBeFiltered);
 		}
-		
+
 		private void DrawList()
 		{
 			GUI.SetNextControlName("DetectiveMainArea");
@@ -197,7 +202,7 @@ namespace BedtimeCore.Editor
 			EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
 			foreach (SelectionObject o in filteredSet)
 			{
-				o.Draw(searchMode, SearchField);
+				o.Draw(searchModes[searchModeIndex], SearchField);
 			}
 
 			EditorGUILayout.EndVertical();
@@ -268,8 +273,8 @@ namespace BedtimeCore.Editor
 		{
 			this.InvokeVoid("FocusSearchField");
 		}
-		
-		private sealed class SelectionObject
+
+		public sealed class SelectionObject
 		{
 			public string Label { get; }
 			private static HashSet<SelectionObject> Selected { get; } = new HashSet<SelectionObject>();
@@ -294,7 +299,7 @@ namespace BedtimeCore.Editor
 				{
 					case SelectionType.Exclusive:
 						Selected.Clear();
-						Selection.objects = Content.Select(c => c.GameObject).ToArray();
+						Selection.objects = Content.Select(c => c.GameObject as UnityEngine.Object).ToArray();
 						break;
 					case SelectionType.Concatenate:
 						Selection.objects = Selection.objects.Concat(Content.Select(c => c.GameObject).ToArray()).ToArray();
@@ -306,7 +311,7 @@ namespace BedtimeCore.Editor
 
 			private bool StringContains(string source, string toCompare) => source.IndexOf(toCompare, StringComparison.OrdinalIgnoreCase) >= 0;
 			
-			public void Draw(SearchMode mode, string searchFilter)
+			public void Draw(ISearchMode mode, string searchFilter)
 			{
 				if (!string.IsNullOrEmpty(searchFilter) && !StringContains(Label, searchFilter))
 				{
@@ -323,18 +328,7 @@ namespace BedtimeCore.Editor
 				}
 				if(icon == null)
 				{
-					switch (mode)
-					{
-						case SearchMode.Components:
-							icon = scriptIcon;
-							break;
-						case SearchMode.Layers:
-							icon = layerIcon;
-							break;
-						case SearchMode.Tags:
-							icon = tagIcon;
-							break;
-					}
+					icon = mode.Icon;
 				}
 
 				GUIContent info = new GUIContent(Label, icon);
@@ -354,7 +348,7 @@ namespace BedtimeCore.Editor
 				GUI.backgroundColor = orgBGColor;
 			}
 			
-			public static IEnumerable<SelectionObject> Filter(SearchMode mode, SortMode sort, IEnumerable<FilterObject> filterObjects)
+			public static IEnumerable<SelectionObject> Filter(ISearchMode mode, SortMode sort, IEnumerable<FilterObject> filterObjects)
 			{
 				Selected.Clear();
 				var dict = new Dictionary<string, SelectionObject>(32);
@@ -373,36 +367,7 @@ namespace BedtimeCore.Editor
 				
 				foreach (FilterObject fo in filterObjects)
 				{
-					switch (mode)
-					{
-						case SearchMode.Components:
-							foreach (Component component in fo.Components)
-							{
-								var type = component != null ? component.GetType() : null;
-								var name = type?.Name ?? "NULL"; 
-								Add(name, fo, type);
-							}
-							break;
-						case SearchMode.Materials:
-						case SearchMode.Shaders:
-							foreach (Material material in fo.Materials)
-							{
-								if (material == null)
-								{
-									continue;
-								}
-								
-								switch (mode)
-								{
-									case SearchMode.Materials: Add(material.name, fo, typeof(Material)); break;
-									case SearchMode.Shaders: Add(material.shader.name, fo, typeof(UnityEngine.Shader)); break;
-								}
-							}	
-							break;
-						case SearchMode.Layers: Add(fo.Layer, fo); break;
-						case SearchMode.Tags: Add(fo.Tag, fo); break;
-						case SearchMode.Names: Add(fo.Name, fo, typeof(GameObject)); break;
-					}
+					mode.Filter(Add, fo);
 				}
 
 				switch (sort)
@@ -452,112 +417,18 @@ namespace BedtimeCore.Editor
 				Concatenate,
 			}
 		}
-		
-		private sealed class FilterObject : IEquatable<GameObject>
-		{
-			private static readonly Dictionary<GameObject, FilterObject> ObjectCache = new Dictionary<GameObject, FilterObject>();
 
-			public static void InvalidateCache()
-			{
-				ObjectCache.Clear();
-			}
-			
-			public static IEnumerable<FilterObject> Get(IEnumerable<Transform> transforms)
-			{
-				return transforms.Select(t => Get(t.gameObject));
-			}
-			
-			public static IEnumerable<FilterObject> Get(IEnumerable<GameObject> gameObjects) => gameObjects.Select(Get);
-
-			public static FilterObject Get(GameObject gameObject)
-			{
-				if (!ObjectCache.TryGetValue(gameObject, out var filterObject))
-				{
-					filterObject = new FilterObject(gameObject);
-					ObjectCache[gameObject] = filterObject;
-				}
-
-				return filterObject;
-			}
-			
-			private FilterObject(GameObject gameObject)
-			{
-				GameObject = gameObject;
-				Components = gameObject.GetComponents<Component>();
-			}
-
-			[field: SerializeField]
-			public GameObject GameObject { get; }
-
-			[field: SerializeField]
-			public Component[] Components { get; }
-
-			public IEnumerable<Material> Materials
-			{
-				get
-				{
-					foreach (Component c in Components)
-					{
-						switch (c)
-						{
-							case Renderer r: yield return r.sharedMaterial; break;
-							case Graphic g: yield return g.materialForRendering; break;
-							case Projector p: yield return p.material; break;
-						}
-					}
-				}
-			}
-
-			public string Layer => $"{GameObject.layer:D2}: {LayerMask.LayerToName(GameObject.layer)}";
-
-			public string Tag => GameObject.tag;
-			
-			public string Name => GameObject.name;
-			private bool Equals(FilterObject other) => Equals(GameObject, other.GameObject);
-			public bool Equals(GameObject other) => GameObject == other;
-
-			public override bool Equals(object obj)
-			{
-				if (ReferenceEquals(null, obj))
-				{
-					return false;
-				}
-
-				if (ReferenceEquals(this, obj))
-				{
-					return true;
-				}
-
-				return obj is FilterObject other && Equals(other);
-			}
-
-			public override int GetHashCode()
-			{
-				unchecked
-				{
-					return ((GameObject != null ? GameObject.GetHashCode() : 0) * 397);
-				}
-			}
-		} 
-		
-		private new enum SearchMode
-		{
-			Components,
-			Layers,
-			Tags,
-			Names,
-			Materials,
-			Shaders,
-		}
-
-		private enum SortMode
+		public enum SortMode
 		{
 			Ascending,
 			Descending,
 			Random,
 		}
 
+		private List<ISearchMode> searchModes = new List<ISearchMode>();
+
 		private static GUIStyle lockStyle;
+
 		private static GUIStyle takeSelectionStyle;
 
 		private GUIStyle TakeSelectionStyle
