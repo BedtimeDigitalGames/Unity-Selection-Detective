@@ -16,6 +16,11 @@ namespace BedtimeCore.SelectionDetective
 		{
 			foreach (var component in toFilter.Components)
 			{
+				if (component == null)
+				{
+					continue;
+				}
+				
 				var type = component.GetType();
 				var fields = type.GetFields(BindingFlags.Default | BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.NonPublic);
 				foreach (var fieldInfo in fields)

@@ -199,46 +199,61 @@ namespace BedtimeCore.SelectionDetective
 			{
 				return;
 			}
-			_filteredSet = SelectionObject.Filter(SearchMode, _sortMode,  _toBeFiltered).ToArray();
+			_filteredSet = SelectionObject.Filter(SearchMode, _sortMode, _toBeFiltered).ToArray();
+			UpdateSearch();
 		}
 
+		private void UpdateSearch()
+		{
+			_searchFilteredSet = _filteredSet;
+			if (!string.IsNullOrEmpty(SearchField))
+			{
+				_searchFilteredSet = _searchFilteredSet.Where(s => StringContains(s.Label, SearchField)).ToArray();
+			}
+		}
+
+		private bool StringContains(string source, string toCompare) => source.IndexOf(toCompare, StringComparison.OrdinalIgnoreCase) >= 0;
+		
 		private void DrawList()
 		{
+			var objects = _searchFilteredSet;
 			var buttonHeight = SelectionObject.BUTTON_HEIGHT;
 			scrollHeightMax = (int) ((position.height - PRE_SCROLL_HEIGHT) / buttonHeight);
 			GUI.SetNextControlName("DetectiveMainArea");
-			int firstIndex = (int)(_scroll.y / buttonHeight);
 			_scroll = GUILayout.BeginScrollView(_scroll, GUIStyle.none, GUI.skin.GetStyle("VerticalScrollbar"), GUILayout.ExpandHeight(true));
-			firstIndex = Mathf.Clamp(firstIndex,0,Mathf.Max(0,_filteredSet.Length - scrollHeightMax));
+			_scroll = new Vector2(_scroll.x, _scroll.y - _scroll.y % buttonHeight);
+			int firstIndex = (int) (_scroll.y / buttonHeight);
+			firstIndex = Mathf.Clamp(firstIndex,0,Mathf.Max(0,objects.Length - scrollHeightMax));
 
 			EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 			GUILayout.Space(firstIndex * buttonHeight);
-
-			for (var i = firstIndex; i < Mathf.Min(_filteredSet.Length, firstIndex+scrollHeightMax); i++)
+			
+			for (var i = firstIndex; i < Mathf.Min(objects.Length, firstIndex+scrollHeightMax); i++)
 			{
-				SelectionObject o = _filteredSet[i];
+				SelectionObject o = objects[i];
 				o.Draw(searchModes[_searchModeIndex], SearchField);
 			}
 			
-			GUILayout.Space(Mathf.Max(0,(_filteredSet.Length-firstIndex-scrollHeightMax) * buttonHeight));
+			GUILayout.Space(Mathf.Max(0,(objects.Length-firstIndex-scrollHeightMax) * buttonHeight));
 			EditorGUILayout.EndVertical();
 			EditorGUILayout.EndScrollView();
 
-
-			if (mouseOverWindow is SelectionDetective)
+			if (!(mouseOverWindow is SelectionDetective))
 			{
-				if (Event.current.type == EventType.MouseDown)
-				{
-					EditorGUI.FocusTextInControl("");
-				}
-				try
-				{
-					mouseOverWindow.Repaint();
-				}
-				catch (Exception)
-				{
-					// ignored
-				}
+				return;
+			}
+
+			if (Event.current.type == EventType.MouseDown)
+			{
+				EditorGUI.FocusTextInControl("");
+			}
+			try
+			{
+				mouseOverWindow.Repaint();
+			}
+			catch (Exception)
+			{
+				// ignored
 			}
 		}
 
@@ -272,8 +287,15 @@ namespace BedtimeCore.SelectionDetective
 			EditorGUI.EndDisabledGroup();
 			
 			EditorGUILayout.Space();
+
+			var oldSearch = SearchField;
 			_drawSearchFieldGUI.Invoke();
 
+			if (oldSearch != SearchField)
+			{
+				UpdateSearch();
+			}
+			
 			EditorGUILayout.EndHorizontal();
 		}
 
@@ -314,7 +336,7 @@ namespace BedtimeCore.SelectionDetective
 				Selected.Add(this);
 			}
 
-			private bool StringContains(string source, string toCompare) => source.IndexOf(toCompare, StringComparison.OrdinalIgnoreCase) >= 0;
+			private static bool StringContains(string source, string toCompare) => source.IndexOf(toCompare, StringComparison.OrdinalIgnoreCase) >= 0;
 			
 			public void Draw(ISearchMode mode, string searchFilter)
 			{
@@ -375,12 +397,15 @@ namespace BedtimeCore.SelectionDetective
 					mode.Filter(Add, fo);
 				}
 
+				IEnumerable<SelectionObject> output;
 				switch (sort)
 				{
-					case SortMode.Ascending: return dict.Values.OrderBy(v => v.Label);
-					case SortMode.Random: return dict.Values.OrderBy(v => v.GetHashCode());
-					default: return dict.Values.OrderByDescending(v => v.Label);
+					case SortMode.Ascending: output = dict.Values.OrderBy(v => v.Label); break;
+					case SortMode.Random: output = dict.Values.OrderBy(v => v.GetHashCode()); break;
+					default: output = dict.Values.OrderByDescending(v => v.Label); break;
 				}
+
+				return output;
 			}
 			
 			private SelectionObject(string label)
@@ -437,6 +462,7 @@ namespace BedtimeCore.SelectionDetective
 
 		private static GUIStyle takeSelectionStyle;
 		private int scrollHeightMax;
+		private SelectionObject[] _searchFilteredSet;
 		private const float PRE_SCROLL_HEIGHT = 46;
 
 		private GUIStyle TakeSelectionStyle
