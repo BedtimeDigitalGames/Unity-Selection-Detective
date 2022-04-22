@@ -1,8 +1,7 @@
 {
     "name": "com.bedtime.selection-detective",
-    "references": [
-        "com.bedtime.tree-view-utilities"
-    ],
+    "rootNamespace": "",
+    "references": [],
     "includePlatforms": [
         "Editor"
     ],

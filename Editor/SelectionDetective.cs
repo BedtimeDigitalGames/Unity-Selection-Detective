@@ -9,13 +9,11 @@ namespace BedtimeCore.SelectionDetective
 {
 	internal sealed class SelectionDetective : SearchableEditorWindow
 	{
+		private const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
+		
 		[MenuItem("GameObject/Selection Detective", false, 0)]
 		private static void ShowWindow() => GetWindow<SelectionDetective>().FocusSearch();
 
-		private GameObject[] _selectionOwners = new GameObject[0];
-		private IEnumerable<FilterObject> _toBeFiltered = new FilterObject[0];
-		private SelectionObject[] _filteredSet = new SelectionObject[0];
-		
 		[SerializeField]
 		private int _searchModeIndex;
 		
@@ -31,18 +29,29 @@ namespace BedtimeCore.SelectionDetective
 		[SerializeField]
 		private Vector2 _scroll;
 		
+		private GameObject[] _selectionOwners = new GameObject[0];
+		private IEnumerable<FilterObject> _toBeFiltered = new FilterObject[0];
+		private SelectionObject[] _filteredSet = new SelectionObject[0];
+		
+		private readonly Type _thisType = typeof(SelectionDetective);
 		private string[] _searchModeNames;
 		private static bool _isControllingSelection;
+		
 		private static Texture _lockedIcon;
 		private static Texture _unlockedIcon;
 		private static Texture _takeSelectionIcon;
-		private new ISearchMode SearchMode => searchModes[_searchModeIndex];
-
-		private readonly Type _thisType = typeof(SelectionDetective);
-		private const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.NonPublic;
+		private static GUIStyle _lockStyle;
+		private static GUIStyle _takeSelectionStyle;
+		
+		private new ISearchMode SearchMode => _searchModes[_searchModeIndex];
+		private List<ISearchMode> _searchModes = new List<ISearchMode>();
+		private SelectionObject[] _searchFilteredSet;
+		
 		private Action _drawSearchFieldGUI;
 		private Func<string> _getSearchFilter;
-
+		
+		private int _scrollHeightMax;
+		
 		private string SearchField => _getSearchFilter.Invoke();
 
 		public override void OnEnable()
@@ -52,8 +61,8 @@ namespace BedtimeCore.SelectionDetective
 			_takeSelectionIcon = EditorGUIUtility.IconContent("ArrowNavigationRight").image;
 			_lockedIcon = EditorGUIUtility.IconContent("IN LockButton on act").image;
 			_unlockedIcon = EditorGUIUtility.IconContent("IN LockButton act").image;
-			searchModes = GetSearchModes();
-			_searchModeNames = searchModes.Select(s => s.Name).ToArray();
+			_searchModes = GetSearchModes();
+			_searchModeNames = _searchModes.Select(s => s.Name).ToArray();
 			minSize = new Vector2(200, 140);
 
 			var method = _thisType.GetMethod("SearchFieldGUI", FLAGS, null, new Type[0], new ParameterModifier[0]);
@@ -216,25 +225,27 @@ namespace BedtimeCore.SelectionDetective
 		
 		private void DrawList()
 		{
+			const float PRE_SCROLL_HEIGHT = 46;
+		
 			var objects = _searchFilteredSet;
 			var buttonHeight = SelectionObject.BUTTON_HEIGHT;
-			scrollHeightMax = (int) ((position.height - PRE_SCROLL_HEIGHT) / buttonHeight);
+			_scrollHeightMax = (int) ((position.height - PRE_SCROLL_HEIGHT) / buttonHeight);
 			GUI.SetNextControlName("DetectiveMainArea");
 			_scroll = GUILayout.BeginScrollView(_scroll, GUIStyle.none, GUI.skin.GetStyle("VerticalScrollbar"), GUILayout.ExpandHeight(true));
 			_scroll = new Vector2(_scroll.x, _scroll.y - _scroll.y % buttonHeight);
 			int firstIndex = (int) (_scroll.y / buttonHeight);
-			firstIndex = Mathf.Clamp(firstIndex,0,Mathf.Max(0,objects.Length - scrollHeightMax));
+			firstIndex = Mathf.Clamp(firstIndex,0,Mathf.Max(0,objects.Length - _scrollHeightMax));
 
 			EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
 			GUILayout.Space(firstIndex * buttonHeight);
 			
-			for (var i = firstIndex; i < Mathf.Min(objects.Length, firstIndex+scrollHeightMax); i++)
+			for (var i = firstIndex; i < Mathf.Min(objects.Length, firstIndex+_scrollHeightMax); i++)
 			{
 				SelectionObject o = objects[i];
-				o.Draw(searchModes[_searchModeIndex], SearchField);
+				o.Draw(_searchModes[_searchModeIndex], SearchField);
 			}
 			
-			GUILayout.Space(Mathf.Max(0,(objects.Length-firstIndex-scrollHeightMax) * buttonHeight));
+			GUILayout.Space(Mathf.Max(0,(objects.Length-firstIndex-_scrollHeightMax) * buttonHeight));
 			EditorGUILayout.EndVertical();
 			EditorGUILayout.EndScrollView();
 
@@ -455,43 +466,19 @@ namespace BedtimeCore.SelectionDetective
 			Descending,
 			Random,
 		}
-
-		private List<ISearchMode> searchModes = new List<ISearchMode>();
-
-		private static GUIStyle lockStyle;
-
-		private static GUIStyle takeSelectionStyle;
-		private int scrollHeightMax;
-		private SelectionObject[] _searchFilteredSet;
-		private const float PRE_SCROLL_HEIGHT = 46;
-
-		private GUIStyle TakeSelectionStyle
-		{
-			get
-			{
-				if (takeSelectionStyle == null)
-				{
-					takeSelectionStyle = new GUIStyle(EditorStyles.toolbarButton);
-					takeSelectionStyle.alignment = TextAnchor.MiddleCenter;
-					takeSelectionStyle.contentOffset = new Vector2(0f, 0f);
-				}
-
-				return takeSelectionStyle;
-			}
-		}
-
+		
 		private GUIStyle LockStyle
 		{
 			get
 			{
-				if (lockStyle == null)
+				if (_lockStyle == null)
 				{
-					lockStyle = new GUIStyle(EditorStyles.toolbarButton);
-					lockStyle.alignment = TextAnchor.MiddleCenter;
-					lockStyle.contentOffset = new Vector2(-2f, -2f);
+					_lockStyle = new GUIStyle(EditorStyles.toolbarButton);
+					_lockStyle.alignment = TextAnchor.MiddleCenter;
+					_lockStyle.contentOffset = new Vector2(-2f, -2f);
 				}
 
-				return lockStyle;
+				return _lockStyle;
 			}
 		}
 	}
