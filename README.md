@@ -4,7 +4,7 @@
 </a>
 
 Selection Detective is a tool for viewing and selecting contents of a GameObject and its children.
-With this tool you can find easily select or find all the GameObjects that are using any:
+With this tool you can easily select or find all the GameObjects that are using specific:
 - Components 
 - Layers
 - Materials
