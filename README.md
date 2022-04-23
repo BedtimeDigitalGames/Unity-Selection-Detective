@@ -18,7 +18,7 @@ You can clone this repository directly into your *Packages* folder in your proje
 #### Git + Unity Package Manager
 Add this URL to your Unity Package manager as a git package
 
-```https://github.com/BedtimeDigitalGames/Unity-Selection-Detective``` 
+```https://github.com/BedtimeDigitalGames/Unity-Selection-Detective.git#1.3.3``` 
 
 ![image](https://user-images.githubusercontent.com/104233613/164909451-0ca62c24-0106-463b-9c4b-e7fbcd6409ad.png)
 
