@@ -21,5 +21,6 @@ namespace BedtimeCore.SelectionDetective
 		public Texture Icon { get; }
 
 		public string Name => "Shaders";
+		public int Priority { get; }
 	}
 }

@@ -1,4 +1,5 @@
 using System;
+using UnityEditor;
 using UnityEngine;
 
 namespace BedtimeCore.SelectionDetective
@@ -21,5 +22,6 @@ namespace BedtimeCore.SelectionDetective
 		public Texture Icon { get; }
 
 		public string Name => "Materials";
+		public int Priority { get; }
 	}
 }

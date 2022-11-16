@@ -80,7 +80,7 @@ namespace BedtimeCore.SelectionDetective
 		private List<ISearchMode> GetSearchModes()
 		{
 			var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(asm => asm.GetTypes()).Where(t => typeof(ISearchMode).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract).ToList();
-			return types.Select(type => Activator.CreateInstance(type) as ISearchMode).ToList();
+			return types.Select(type => Activator.CreateInstance(type) as ISearchMode).OrderByDescending(s => s!.Priority).ToList();
 		}
 
 		private void OnHierarchyChanged()

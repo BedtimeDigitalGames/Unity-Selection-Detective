@@ -10,5 +10,6 @@ namespace BedtimeCore.SelectionDetective
 		public Texture Icon { get; }
 
 		public string Name => "Names";
+		public int Priority { get; }
 	}
 }

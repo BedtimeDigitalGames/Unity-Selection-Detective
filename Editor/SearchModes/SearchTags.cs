@@ -11,7 +11,8 @@ namespace BedtimeCore.SelectionDetective
 		public Texture Icon { get; }
 
 		public string Name => "Tags";
-		
+		public int Priority { get; }
+
 		public SearchTags()
 		{
 			Icon = EditorGUIUtility.IconContent("d_FilterByLabel").image;

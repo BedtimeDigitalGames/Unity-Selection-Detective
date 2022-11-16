@@ -8,5 +8,7 @@ namespace BedtimeCore.SelectionDetective
 		void Filter(Action<string, FilterObject, Type> add, FilterObject toFilter);
 		Texture Icon { get; }
 		string Name { get; }
+		
+		int Priority { get; }
 	}
 }	

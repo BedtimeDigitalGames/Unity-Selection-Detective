@@ -35,5 +35,6 @@ namespace BedtimeCore.SelectionDetective
 
 		public Texture Icon { get; }
 		public string Name => "Public Fields";
+		public int Priority { get; }
 	}
 }

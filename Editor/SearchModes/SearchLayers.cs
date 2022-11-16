@@ -10,7 +10,8 @@ namespace BedtimeCore.SelectionDetective
 		public Texture Icon { get; }
 
 		public string Name => "Layers";
-		
+		public int Priority { get; }
+
 		public SearchLayers()
 		{
 			Icon = EditorGUIUtility.IconContent("d_SceneViewFx").image;

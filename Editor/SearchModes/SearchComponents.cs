@@ -18,7 +18,8 @@ namespace BedtimeCore.SelectionDetective
 		public Texture Icon { get; }
 
 		public string Name => "Components";
-		
+		public int Priority => 1000;
+
 		public SearchComponents()
 		{
 			Icon = EditorGUIUtility.IconContent("cs Script Icon").image;
