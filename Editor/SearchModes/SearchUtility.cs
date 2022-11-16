@@ -1,18 +1,41 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEditor;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Debug = Favorites.Debug;
 using Object = UnityEngine.Object;
 
 namespace BedtimeCore.SelectionDetective
 {
 	internal static class SearchUtility
 	{
-		public static IEnumerable<Object> Find<T>(Object obj) where T : class
+		private static readonly HashSet<Type> _toSkip = new()
 		{
+			typeof(SceneAsset),
+			typeof(Scene),
+			typeof(GameObject),
+			typeof(MonoScript),
+			typeof(ScriptableObject),
+			typeof(Transform),
+		};
+		
+		public static IEnumerable<Object> Find<T>(Object obj, int depth = 0) where T : class
+		{
+			if (obj == null)
+			{
+				yield break;
+			}
+			
+			depth++;
+			if(depth > 2)
+			{
+				yield break;
+			}
+			
 			var serializedObject = new SerializedObject(obj);
-
 			var property = serializedObject.GetIterator();
-
 			while (property.NextVisible(true))
 			{
 				if (property.propertyType != SerializedPropertyType.ObjectReference)
@@ -25,13 +48,22 @@ namespace BedtimeCore.SelectionDetective
 					continue;
 				}
 
+				var type = property.objectReferenceValue.GetType();
+				
+				if (_toSkip.Contains(type) || typeof(ScriptableObject).IsAssignableFrom(type))
+				{
+					continue;
+				}
+				
 				if (property.objectReferenceValue is not T)
 				{
-					foreach (var serializedProperty in Find<T>(property.objectReferenceValue))
+					if(AssetDatabase.Contains(property.objectReferenceValue))
 					{
-						yield return serializedProperty;
+						foreach (var serializedProperty in Find<T>(property.objectReferenceValue, depth))
+						{
+							yield return serializedProperty;
+						}
 					}
-
 					continue;
 				}
 
@@ -48,7 +80,7 @@ namespace BedtimeCore.SelectionDetective
 				}
 			}
 		}
-		
+
 		public static string GetNameWithoutGenericArity(this Type t)
 		{
 			string name = t.Name;
