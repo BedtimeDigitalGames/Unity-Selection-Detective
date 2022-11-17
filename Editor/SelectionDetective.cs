@@ -314,7 +314,8 @@ namespace BedtimeCore.SelectionDetective
 
 		public sealed class SelectionObject
 		{
-			public string Label { get; }
+			public string Label => $"{_label} ({Count:00})";
+			public int Count => Content?.Count ?? 0;
 			private static HashSet<SelectionObject> Selected { get; } = new HashSet<SelectionObject>();
 			private List<FilterObject> Content { get; }
 			
@@ -412,7 +413,7 @@ namespace BedtimeCore.SelectionDetective
 				switch (sort)
 				{
 					case SortMode.Ascending: output = dict.Values.OrderBy(v => v.Label); break;
-					case SortMode.Random: output = dict.Values.OrderBy(v => v.GetHashCode()); break;
+					case SortMode.Count: output = dict.Values.OrderByDescending(v => v.Count); break;
 					default: output = dict.Values.OrderByDescending(v => v.Label); break;
 				}
 
@@ -421,7 +422,7 @@ namespace BedtimeCore.SelectionDetective
 			
 			private SelectionObject(string label)
 			{
-				Label = label;
+				_label = label;
 				Content = new List<FilterObject>();
 			}
 			
@@ -451,6 +452,7 @@ namespace BedtimeCore.SelectionDetective
 
 			private static GUIStyle buttonStyleNormal;
 			private static GUIStyle buttonStyleDown;
+			private readonly string _label;
 			public const float BUTTON_HEIGHT = 16f;
 
 			private enum SelectionType
@@ -464,7 +466,7 @@ namespace BedtimeCore.SelectionDetective
 		{
 			Ascending,
 			Descending,
-			Random,
+			Count,
 		}
 		
 		private GUIStyle LockStyle
