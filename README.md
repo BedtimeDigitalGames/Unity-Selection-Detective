@@ -4,7 +4,7 @@
 </a>
 
 Selection Detective is a tool for viewing and selecting contents of a GameObject and its children.
-With this tool you can find easily select or find all the GameObjects that are using any:
+With this tool you can easily select or find all the GameObjects that are using specific:
 - Components 
 - Layers
 - Materials
@@ -13,17 +13,20 @@ With this tool you can find easily select or find all the GameObjects that are u
 - Tags
 - Serialized/Public fields
 
-## Installation
+# Installation
 You can clone this repository directly into your *Packages* folder in your project, add the git URL through Unity's package manager, or through [OpenUPM](https://openupm.com/)
-#### Git + Unity Package Manager
+### Git + Unity Package Manager
 Add this URL to your Unity Package manager as a git package
 
-```https://github.com/BedtimeDigitalGames/Unity-Selection-Detective``` 
+```https://github.com/BedtimeDigitalGames/Unity-Selection-Detective.git#1.3.3``` 
 
 ![image](https://user-images.githubusercontent.com/104233613/164909451-0ca62c24-0106-463b-9c4b-e7fbcd6409ad.png)
 
-#### OpenUPM
+### OpenUPM
 ```$ openupm add com.bedtime.selection-detective```
+
+### UnityPackage
+[Download](https://github.com/BedtimeDigitalGames/Unity-Selection-Detective/releases/download/1.3.3/com.bedtime.selection-detective.unitypackage)
 
 # How to use
 Right click any GameObject(s) in your scene and click "Selection Detective" to get started!
