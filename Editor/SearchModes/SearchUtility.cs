@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Debug = Favorites.Debug;
 using Object = UnityEngine.Object;
 
 namespace BedtimeCore.SelectionDetective

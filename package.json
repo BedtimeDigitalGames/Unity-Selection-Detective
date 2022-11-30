@@ -2,7 +2,7 @@
   "name": "com.bedtime.selection-detective",
   "displayName": "Selection Detective",
   "description": "A tool for viewing and selecting contents of a GameObject and its children",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "author": {
     "name": "Bedtime Digital Games",
     "url": "https://git.bedtime.io/unity-packages/com.bedtime.selection-detective"
